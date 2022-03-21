@@ -19,19 +19,20 @@ go get github.com/78bits/go1384/...
 ```
 ## Quick Start
 
-The following Go code decodes a ASTM-File.
+The following Go code decodes a ASTM read from a File.
 
 ``` go
-    fileData, err := ioutil.ReadFile("protocoltest/becom/5.2/bloodtype.astm")
-	if err != nil {
-		log.Fatal(err)		
-	}
+fileData, err := ioutil.ReadFile("protocoltest/becom/5.2/bloodtype.astm")
+if err != nil {
+  log.Fatal(err)		
+}
 
-	message, err := astm1384.Unmarshal(fileData,
-		astm1384.Encoding_Windows1252, 
-        astm1384.Timezone_EuropeBerlin, 
-        astm1384.LIS2A2)
-	if err != nil {
-		log.Fatal(err)		
-	}
+message, err := astm1384.Unmarshal(fileData,
+ astm1384.Encoding_Windows1252, 
+ astm1384.Timezone_EuropeBerlin, 
+ astm1384.LIS2A2)
+
+if err != nil {
+   log.Fatal(err)		
+}
 ```
