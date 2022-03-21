@@ -4,19 +4,19 @@ import "time"
 
 // (see https://samson-rus.com/wp-content/files/LIS2-A2.pdf)
 type Header struct {
-	Delimiters              string    `astm:"1"`  // 6.2
-	MessageControlID        string    `astm:"2"`  // 6.3
-	AccessPassword          string    `astm:"3"`  // 6.4
-	SenderNameOrID          string    `astm:"4"`  // 6.5
-	SenderStreetAddress     string    `astm:"5"`  // 6.6
-	Field6                  string    `astm:"6"`  // 6.7
-	SenderTelephone         string    `astm:"7"`  // 6.8
-	CharacteristicsOfSender string    `astm:"8"`  // 6.9
-	ReceiverID              string    `astm:"9"`  // 6.10
-	Comment                 string    `astm:"10"` // 6.11
-	ProcessingID            string    `astm:"11"` // 6.12
-	Version                 string    `astm:"12"` // 6.13
-	DateAndTime             time.Time `astm:"13"` // 6.14
+	Delimiters              string    `astm:"1"`           // 6.2
+	MessageControlID        string    `astm:"2"`           // 6.3
+	AccessPassword          string    `astm:"3"`           // 6.4
+	SenderNameOrID          string    `astm:"4"`           // 6.5
+	SenderStreetAddress     string    `astm:"5"`           // 6.6
+	Field6                  string    `astm:"6"`           // 6.7
+	SenderTelephone         string    `astm:"7"`           // 6.8
+	CharacteristicsOfSender string    `astm:"8"`           // 6.9
+	ReceiverID              string    `astm:"9"`           // 6.10
+	Comment                 string    `astm:"10"`          // 6.11
+	ProcessingID            string    `astm:"11"`          // 6.12
+	Version                 string    `astm:"12"`          // 6.13
+	DateAndTime             time.Time `astm:"13,longdate"` // 6.14
 }
 
 // https://samson-rus.com/wp-content/files/LIS2-A2.pdf

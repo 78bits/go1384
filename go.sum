@@ -1,3 +1,5 @@
+github.com/aglyzov/charmap v0.0.0-20151220132847-945fb53710f2 h1:fjVKdSYe0G+zNMrVxIr1OnkUgZyM3FGTEE1d+9pP2aw=
+github.com/aglyzov/charmap v0.0.0-20151220132847-945fb53710f2/go.mod h1:VKpNbGKtQSdv+z6hQ5aIsPmcivKzgw9yNVomYg992b4=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

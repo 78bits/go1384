@@ -102,5 +102,36 @@ func noTestReadfileEuroImmunAnalyzer1(t *testing.T) {
 	assert.Nil(t, err)
 	testTimeAsInFile = testTimeAsInFile.In(timezone)
 	assert.Equal(t, testTimeAsInFile, message.Records[0].Orders[0].Order.RequestedOrderDateTime)
+}
 
+func TestMarshalTheUnmarshalled(t *testing.T) {
+	fileData, err := ioutil.ReadFile("../protocoltest/becom/5.2/bloodtype.astm")
+	if err != nil {
+		fmt.Println("Failed : ", err)
+		return
+	}
+
+	message, err := astm1384.Unmarshal(fileData,
+		astm1384.Encoding_Windows1252, astm1384.Timezone_EuropeBerlin, astm1384.LIS2A2)
+	if err != nil {
+		fmt.Println("Error in unmarshaling the message ", err)
+		return
+	}
+
+	msg, err := astm1384.Marshal(message, astm1384.Encoding_Windows1252, astm1384.Timezone_EuropeBerlin, astm1384.LIS2A2)
+	assert.Nil(t, err)
+	fmt.Println(string(msg))
+}
+
+func TestBuilder(t *testing.T) {
+	msg := astm1384.CreateMessage()
+	msg.SetHeader(&astm1384.Header{
+		Delimiters:       "^&\\",
+		MessageControlID: "someid",
+		Version:          "1.2.0",
+		DateAndTime:      time.Now(),
+		SenderNameOrID:   "myself",
+	})
+
+	astm1384.Marshal(msg, astm1384.Encoding_Windows1252, astm1384.Timezone_EuropeBerlin, astm1384.LIS2A2)
 }

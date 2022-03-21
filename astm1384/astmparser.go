@@ -5,23 +5,6 @@ import (
 	"fmt"
 )
 
-type ASTMMessage struct {
-	Header  *Header
-	Records []*Record
-}
-
-type Record struct {
-	Patient  *Patient
-	Orders   []*OrderResults
-	Comments []*Comment
-}
-
-type OrderResults struct {
-	Order    *Order
-	Results  []*CommentedResult
-	Comments []*Comment
-}
-
 type CommentedResult struct {
 	Result   *Result
 	Comments []*Comment
