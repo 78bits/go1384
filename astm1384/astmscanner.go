@@ -128,7 +128,13 @@ func reflect_map(fields []string, target interface{},
 	for i := 0; i < t.NumField(); i++ {
 		astmTag := t.Field(i).Tag.Get("astm")
 
-		mapFieldNo, err := strconv.Atoi(astmTag) // just a number
+		astmTagsList := strings.Split(astmTag, ",")
+
+		if len(astmTagsList) == 0 || astmTag == "" {
+			continue // nothing to process when someone requires astm:
+		}
+
+		mapFieldNo, err := strconv.Atoi(astmTagsList[0]) // just a number
 		if err != nil {
 			return err
 		}
@@ -142,7 +148,21 @@ func reflect_map(fields []string, target interface{},
 
 		switch fieldValue.(type) {
 		case string:
-			field.SetString(fields[mapFieldNo])
+			if len(astmTagsList) > 1 {
+				// further subdivide like this part "|^^^MO10^^28343^|"
+				subFields := strings.Split(fields[mapFieldNo], "^")
+				subFieldNo, err := strconv.Atoi(astmTagsList[1])
+				if err != nil {
+					return errors.New(fmt.Sprintf("Invalid annotation astm:%s. %s", astmTag, err))
+				}
+				if len(subFields) >= subFieldNo && subFieldNo >= 1 {
+					field.SetString(subFields[subFieldNo-1])
+				} else {
+					// when fields are not present they just dont get mapped = skipping here
+				}
+			} else {
+				field.SetString(fields[mapFieldNo])
+			}
 		case int:
 			num, err := strconv.Atoi(fields[mapFieldNo])
 			if err != nil {
@@ -158,19 +178,17 @@ func reflect_map(fields []string, target interface{},
 			if instr == "" {
 				field.Set(reflect.ValueOf(time.Time{}))
 			} else if len(instr) == 8 { // YYYYMMDD See Section 5.6.2 https://samson-rus.com/wp-content/files/LIS2-A2.pdf
-				time_unlocated, err := time.Parse("20060102", instr)
+				time_located, err := time.ParseInLocation("20060102", instr, timezone)
 				if err != nil {
 					return errors.New(fmt.Sprintf("Invalid time format <%s>", instr))
 				}
-				time_in_location := time_unlocated.In(timezone)
-				field.Set(reflect.ValueOf(time_in_location))
+				field.Set(reflect.ValueOf(time_located))
 			} else if len(instr) == 14 { // YYYYMMDDHHMMSS
-				time_unlocated, err := time.Parse("20060102150405", instr)
+				time_located, err := time.ParseInLocation("20060102150405", instr, timezone)
 				if err != nil {
 					return errors.New(fmt.Sprintf("Invalid time format <%s>", instr))
 				}
-				time_in_location := time_unlocated.In(timezone)
-				field.Set(reflect.ValueOf(time_in_location))
+				field.Set(reflect.ValueOf(time_located.UTC()))
 			} else {
 				return errors.New(fmt.Sprintf("Unrecognized time format <%s>", instr))
 			}
