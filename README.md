@@ -6,7 +6,15 @@ Golang library for handling ASTM lis2a2 Procotol
 `go get github.com/78bits/astm1384`
 
 ## Features
-  - Encoding Support (UTF-8/Codepage 437/Codepage 850/Windows 1254) support
+  - Encoding 
+    - UTF8 
+    - ASCII
+    - Windows1250 
+    - Windows1251 
+    - Windows1252 
+    - DOS852 
+    - DOS855 
+    - DOS866 
   - Timezone Support
   - Marshal/Unmarshal function
 
