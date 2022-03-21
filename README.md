@@ -7,14 +7,14 @@ Golang library for handling ASTM lis2a2 Procotol
 
 ## Features
   - Encoding 
-    - Encoding_UTF8 
-    - Encoding_ASCII
-    - Encoding_Windows1250 
-    - Encoding_Windows1251 
-    - Encoding_Windows1252 
-    - Encoding_DOS852 
-    - Encoding_DOS855 
-    - Encoding_DOS866 
+    - UTF8 
+    - ASCII
+    - Windows1250 
+    - Windows1251 
+    - Windows1252 
+    - DOS852 
+    - DOS855 
+    - DOS866 
   - Timezone Support
   - Marshal/Unmarshal function
 
