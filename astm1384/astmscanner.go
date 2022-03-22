@@ -173,6 +173,16 @@ func reflect_map(fields []string, target interface{},
 			instr := fields[mapFieldNo]
 			list := splitany(instr, usedelimiter)
 			field.Set(reflect.ValueOf(list))
+		case [][]string:
+			fieldFromFile := fields[mapFieldNo]
+			// the amount of repeat-separators is the first dimension, then each repeats the patters
+			arry := make([][]string, 0)
+			sequences := strings.Split(fieldFromFile, "\\")
+			for _, sequence := range sequences {
+				data := strings.Split(sequence, "^")
+				arry = append(arry, data)
+			}
+			field.Set(reflect.ValueOf(arry))
 		case time.Time:
 			instr := fields[mapFieldNo]
 			if instr == "" {
@@ -216,9 +226,9 @@ func splitany(s string, delimiters string) []string {
 		ret = append(ret, cut)
 	}
 
-	if len(s) > 0 {
-		ret = append(ret, s)
-	}
+	//if len(s) > 0 {
+	ret = append(ret, s)
+	//}
 
 	return ret
 }

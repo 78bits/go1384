@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aglyzov/charmap"
+	charmap "github.com/aglyzov/charmap"
 )
 
 type ProtocolVersion int
@@ -43,7 +43,7 @@ func Unmarshal(messageData []byte, enc Encoding, tz Timezone, pv ProtocolVersion
 		return nil, errors.New("Protocol Not implemented")
 	}
 
-	timezone, err := time.LoadLocation(string(tz))
+	location, err := time.LoadLocation(string(tz))
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func Unmarshal(messageData []byte, enc Encoding, tz Timezone, pv ProtocolVersion
 		return nil, errors.New(fmt.Sprintf("Invalid Codepage %d", enc))
 	}
 
-	tokeninput, err2 := astm1384Scanner(messagestr, timezone, "\n")
+	tokeninput, err2 := astm1384Scanner(messagestr, location, "\n")
 	if err2 != nil {
 		return nil, err2
 	}
@@ -111,7 +111,12 @@ func Unmarshal(messageData []byte, enc Encoding, tz Timezone, pv ProtocolVersion
 func Marshal(message *ASTMMessage, enc Encoding, tz Timezone, pv ProtocolVersion) ([]byte, error) {
 	var buffer bytes.Buffer
 
-	err := convertToASTMFileRecord("H", message.Header, []string{"|", "^", "&"}, &buffer)
+	location, err := time.LoadLocation(string(tz))
+	if err != nil {
+		return []byte{}, err
+	}
+
+	err = convertToASTMFileRecord("H", message.Header, []string{"\\", "^", "&"}, location, &buffer)
 	if err != nil {
 		log.Println(err)
 		return []byte{}, errors.New(fmt.Sprintf("Failed to marshal header: %s", err))
@@ -119,7 +124,7 @@ func Marshal(message *ASTMMessage, enc Encoding, tz Timezone, pv ProtocolVersion
 	buffer.Write([]byte{10, 13})
 
 	if message.Manufacturer != nil {
-		err := convertToASTMFileRecord("M", message.Manufacturer, []string{"|", "^", "&"}, &buffer)
+		err := convertToASTMFileRecord("M", message.Manufacturer, []string{"\\", "^", "&"}, location, &buffer)
 		if err != nil {
 			log.Println(err)
 			return []byte{}, errors.New(fmt.Sprintf("Failed to marshal manufacturer-record: %s", err))
@@ -130,18 +135,50 @@ func Marshal(message *ASTMMessage, enc Encoding, tz Timezone, pv ProtocolVersion
 	for i, record := range message.Records {
 		if record.Patient != nil {
 			record.Patient.SequenceNumber = i + 1
-			err := convertToASTMFileRecord("P", record.Patient, []string{"|", "^", "&"}, &buffer)
+			err := convertToASTMFileRecord("P", record.Patient, []string{"|", "^", "&"}, location, &buffer)
 			if err != nil {
 				log.Println(err)
 				return []byte{}, errors.New(fmt.Sprintf("Failed to marshal header: %s", err))
 			}
 			buffer.Write([]byte{10, 13})
+
+			for orderresults_i, orderresults := range record.Orders {
+				orderresults.Order.SequenceNumber = orderresults_i + 1
+				err := convertToASTMFileRecord("O", orderresults.Order, []string{"|", "^", "&"}, location, &buffer)
+				if err != nil {
+					log.Println(err)
+					return []byte{}, errors.New(fmt.Sprintf("Failed to marshal order-records: %s", err))
+				}
+				buffer.Write([]byte{10, 13})
+
+				for results_i, result := range orderresults.Results {
+					result.Result.SequenceNumber = results_i + 1
+					err := convertToASTMFileRecord("R", result.Result, []string{"|", "^", "&"}, location, &buffer)
+					if err != nil {
+						log.Println(err)
+						return []byte{}, errors.New(fmt.Sprintf("Failed to marshal result-record %s", err))
+					}
+					buffer.Write([]byte{10, 13})
+					for comment_i, comment := range result.Comments {
+						comment.SequenceNumber = comment_i + 1
+						err := convertToASTMFileRecord("C", comment, []string{"|", "^", "&"}, location, &buffer)
+						if err != nil {
+							log.Println(err)
+							return []byte{}, errors.New(fmt.Sprintf("Failed to marshal result-comment %s", err))
+						}
+						buffer.Write([]byte{10, 13})
+					}
+				}
+			}
 		}
 	}
+	buffer.Write([]byte("L|1|N"))
+	buffer.Write([]byte{10, 13})
+
 	return buffer.Bytes(), nil
 }
 
-func convertToASTMFileRecord(recordtype string, target interface{}, delimiter []string, buffer *bytes.Buffer) error {
+func convertToASTMFileRecord(recordtype string, target interface{}, delimiter []string, tz *time.Location, buffer *bytes.Buffer) error {
 
 	t := reflect.TypeOf(target).Elem()
 
@@ -156,6 +193,10 @@ func convertToASTMFileRecord(recordtype string, target interface{}, delimiter []
 			continue // nothing to process when someone requires astm:
 		}
 		idx, err := strconv.Atoi(astmTagsList[0])
+		idx = idx - 1
+		if idx < 0 {
+			return errors.New(fmt.Sprintf("Illegal annotation <%s> in for field %s", astmTag, t.Name()))
+		}
 		if err != nil {
 			return err
 		}
@@ -178,9 +219,39 @@ func convertToASTMFileRecord(recordtype string, target interface{}, delimiter []
 			entries[idx] = strconv.Itoa(int(field.Int()))
 		case string:
 			entries[idx] = string(field.String())
+		case []string:
+			arry := fieldValue.([]string)
+			outstring := ""
+			for i := 0; i < len(arry); i++ {
+				outstring = outstring + arry[i]
+				if i < len(arry)-1 {
+					outstring = outstring + "^"
+				}
+			}
+			entries[idx] = outstring
+		case [][]string:
+			arrym := fieldValue.([][]string)
+			outstring := ""
+			for i := 0; i < len(arrym); i++ {
+				subarray := arrym[i]
+				for j := 0; j < len(subarray); j++ {
+					outstring = outstring + subarray[j]
+					if j < len(subarray)-1 {
+						outstring = outstring + "^"
+					}
+				}
+				if i < len(arrym)-1 {
+					outstring = outstring + "\\"
+				}
+			}
+			entries[idx] = outstring
 		case time.Time:
+			if fieldValue.(time.Time).IsZero() {
+				// dates can be zero = no output
+				break
+			}
 			if isLongDate {
-				entries[idx] = fieldValue.(time.Time).Format("20060102150405")
+				entries[idx] = fieldValue.(time.Time).In(tz).Format("20060102150405")
 			} else {
 				entries[idx] = fieldValue.(time.Time).Format("20060102")
 			}
@@ -189,7 +260,7 @@ func convertToASTMFileRecord(recordtype string, target interface{}, delimiter []
 		}
 	}
 
-	output := recordtype + delimiter[0]
+	output := recordtype + "|"
 	for i := 0; i <= maxIdx; i++ {
 		value := entries[i]
 		output = output + value

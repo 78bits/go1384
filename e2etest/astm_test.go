@@ -46,11 +46,15 @@ func TestReadfileBeCom52(t *testing.T) {
 	// Check for the results
 	assert.Equal(t, 1, message.Records[0].Orders[0].Order.SequenceNumber)
 	assert.Equal(t, "1122206642", message.Records[0].Orders[0].Order.SpecimenID[0])
-	assert.Equal(t, "1122206642", message.Records[0].Orders[0].Order.InstrumentSpecimenID[0])
-	assert.Equal(t, "1122206642", message.Records[0].Orders[0].Order.InstrumentSpecimenID[4])
+	//assert.Equal(t, "1122206642", message.Records[0].Orders[0].Order.InstrumentSpecimenID[0])
+	//assert.Equal(t, "1122206642", message.Records[0].Orders[0].Order.InstrumentSpecimenID[4])
+	// this is an empty field with a date (time.IsZero)
+	assert.Equal(t, "", message.Records[0].Orders[0].Order.CollectionID)
+	// assert.Equal(t, 7 /*Fields to be scanned*/, len(message.Records[0].Orders[0].Order.InstrumentSpecimenID))
 	assert.Equal(t, "MO10", message.Records[0].Orders[0].Order.UniversalTestID_ManufacturerCode)
 	assert.Equal(t, "28343" /*Lot#*/, message.Records[0].Orders[0].Order.UniversalTestID_Custom2)
 	assert.Equal(t, "R" /*Routine*/, message.Records[0].Orders[0].Order.Priority)
+	assert.Equal(t, 7 /*Fields to be scanned*/, len(message.Records[0].Orders[0].Order.UniversalTestID))
 
 	assert.Equal(t, "20220311093217" /*UTC Time (this is -1 to what is observed in file)*/, message.Records[0].Orders[0].Order.RequestedOrderDateTime.Format("20060102150405"))
 	assert.Equal(t, "20220311093217", message.Records[0].Orders[0].Order.SpecimenCollectionDateTime.Format("20060102150405"))
@@ -118,7 +122,10 @@ func TestMarshalTheUnmarshalled(t *testing.T) {
 		return
 	}
 
-	msg, err := astm1384.Marshal(message, astm1384.Encoding_Windows1252, astm1384.Timezone_EuropeBerlin, astm1384.LIS2A2)
+	msg, err := astm1384.Marshal(message,
+		astm1384.Encoding_Windows1252,
+		astm1384.Timezone_EuropeBerlin,
+		astm1384.LIS2A2)
 	assert.Nil(t, err)
 	fmt.Println(string(msg))
 }
