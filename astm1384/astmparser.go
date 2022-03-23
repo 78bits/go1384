@@ -63,9 +63,9 @@ func parsePatient(token *Token) (*Token, *Record, error) {
 	}
 
 	record := &Record{
-		Patient:  token.Data.(*Patient),
-		Orders:   make([]*OrderResults, 0),
-		Comments: make([]*Comment, 0)}
+		Patient:          token.Data.(*Patient),
+		OrdersAndResults: make([]*OrderResults, 0),
+		Comments:         make([]*Comment, 0)}
 
 	for {
 		if peekNext(token, TokenOrder) == true {
@@ -75,7 +75,7 @@ func parsePatient(token *Token) (*Token, *Record, error) {
 			if err != nil {
 				return token, nil, err
 			}
-			record.Orders = append(record.Orders, orderResults)
+			record.OrdersAndResults = append(record.OrdersAndResults, orderResults)
 		} else if token == nil {
 			return token, nil, errors.New(fmt.Sprintf("Unexpected end of input"))
 		} else {

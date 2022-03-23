@@ -7,9 +7,9 @@ type ASTMMessage struct {
 }
 
 type Record struct {
-	Patient  *Patient
-	Orders   []*OrderResults
-	Comments []*Comment
+	Patient          *Patient
+	OrdersAndResults []*OrderResults
+	Comments         []*Comment
 }
 
 type OrderResults struct {

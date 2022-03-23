@@ -142,7 +142,7 @@ func Marshal(message *ASTMMessage, enc Encoding, tz Timezone, pv ProtocolVersion
 			}
 			buffer.Write([]byte{10, 13})
 
-			for orderresults_i, orderresults := range record.Orders {
+			for orderresults_i, orderresults := range record.OrdersAndResults {
 				orderresults.Order.SequenceNumber = orderresults_i + 1
 				err := convertToASTMFileRecord("O", orderresults.Order, []string{"|", "^", "&"}, location, &buffer)
 				if err != nil {
