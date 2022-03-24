@@ -12,8 +12,8 @@ type Message struct {
 	Header       Header       `astm:"H"`
 	Manufacturer Manufacturer `astm:"M,optional"`
 	OrderResults []struct {
-		patient Patient `astm:"P"`
-		order   Order   `astm:"O"`
+		Patient Patient `astm:"P"`
+		Order   Order   `astm:"O"`
 		/*commentedResult []struct {
 			result  Result    `astm:"R"`
 			comment []Comment `astm:"C"`

@@ -42,20 +42,22 @@ func seqScan(buffer []string, currentLine int, target interface{}, enc Encoding,
 			continue // not annotated
 		}
 		if len(astmTagsList[0]) < 1 {
+
 			// Not annotated array. If its a struct have to recurse, otherwise skip
 			if outerStructure.Field(i).Type.Kind() == reflect.Slice {
-				sliceOfStructs := reflect.TypeOf(outerStructure.Field(i)) // this is the slice
-				innerTypeOfStruct := outerStructure.Field(i).Type.Elem()
+				sliceFieldType := reflect.TypeOf(outerStructure.Field(i)) // this is the slice
+				innerStructureType := outerStructure.Field(i).Type.Elem()
 
-				slice := reflect.MakeSlice(outerStructure.Field(i).Type, 0, 0)
-				fmt.Println("Da Slice : ", slice)
+				proto_slice := reflect.MakeSlice(outerStructure.Field(i).Type, 0, 0)
+				slice := reflect.New(proto_slice.Type())
+				/* 	*/
 
-				if sliceOfStructs.Kind() == reflect.Struct {
+				if sliceFieldType.Kind() == reflect.Struct {
 
 					for {
 						fmt.Println("Loop")
 
-						allocatedElement := reflect.New(innerTypeOfStruct)
+						allocatedElement := reflect.New(innerStructureType)
 						var err error
 						currentLine, err = seqScan(buffer, currentLine, allocatedElement.Interface(), enc, tz, pv)
 						if err != nil {
@@ -71,7 +73,7 @@ func seqScan(buffer []string, currentLine int, target interface{}, enc Encoding,
 						// reflect.ValueOf(outerType.Field(i)).Set(reflect.Append(reflect.ValueOf(outerType.Field(i)), allocatedElement))
 						// reflect.ValueOf(slice).Set()
 
-						slice = reflect.Append(slice, allocatedElement.Elem())
+						slice = reflect.Append(slice.Elem(), reflect.ValueOf(allocatedElement).Elem())
 						// fmt.Printf("Appended %s\n", appended)
 						// aslice := reflect.ValueOf(slice)
 						//fmt.Printf("QUESTIONMARK %s\n", appended.Interface())
@@ -86,8 +88,13 @@ func seqScan(buffer []string, currentLine int, target interface{}, enc Encoding,
 						// reflect.ValueOf(slice).Set(reflect.Append(reflect.ValueOf(slice.Interface()), allocatedElement.Elem()))
 					}
 
+					fmt.Printf("valf %+v %s\n", slice.Elem(), slice.Elem().CanSet())
+					fmt.Printf("outs %+v %s\n", reflect.ValueOf(target).Elem().Field(i),
+						reflect.ValueOf(target).Elem().Field(i).CanSet())
+
+					reflect.ValueOf(target).Elem().Field(i).Set(slice.Elem()) //reflect.ValueOf(outerStructure.Field(i)).Elem().Set(slice)
 					//reflect.ValueOf(outerStructure.Field(i)).Set(slice)
-					reflect.ValueOf(outerStructure.Field(i)).
+					//reflect.ValueOf(outerStructure.Field(i)).
 				}
 			}
 			continue // empty annotation
