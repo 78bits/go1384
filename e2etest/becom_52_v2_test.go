@@ -9,17 +9,17 @@ import (
 )
 
 type Message struct {
-	Header       Header       `astm:"H"`
-	Manufacturer Manufacturer `astm:"M,optional"`
-	OrderResults []struct {
-		Patient Patient `astm:"P"`
-		Order   Order   `astm:"O"`
-		/*commentedResult []struct {
-			result  Result    `astm:"R"`
-			comment []Comment `astm:"C"`
-		}*/
-	}
-	Terminator Terminator `astm:"L"`
+	Header Header `astm:"H"`
+	/*	Manufacturer Manufacturer `astm:"M,optional"`
+		OrderResults []struct {
+			Patient         Patient `astm:"P"`
+			Order           Order   `astm:"O"`
+			CommentedResult []struct {
+				result  Result    `astm:"R"`
+				comment []Comment `astm:"C,optional"`
+			}
+		}
+		Terminator Terminator `astm:"L"`*/
 }
 
 // (see https://samson-rus.com/wp-content/files/LIS2-A2.pdf)

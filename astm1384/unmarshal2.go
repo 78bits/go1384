@@ -20,7 +20,7 @@ func Unmarshal2(messageData []byte, target interface{}, enc Encoding, tz Timezon
 		buffer[i] = strings.Trim(buffer[i], string([]byte{0x0A}))
 	}
 
-	_, err := seqScan(buffer, 0, target, enc, tz, pv)
+	_, _, err := seqScan(buffer, 1 /*recursion-depth*/, 0, target, enc, tz, pv)
 	if err != nil {
 		return err
 	}
@@ -28,81 +28,90 @@ func Unmarshal2(messageData []byte, target interface{}, enc Encoding, tz Timezon
 	return nil
 }
 
+type RETV int
+
+const OK RETV = 1
+const UNEXPECTED RETV = 2
+const ERROR RETV = 3
+
 /* Scan Structure recursive. Note there are only 10b type of people: those that understand recursions, and those who dont */
-func seqScan(buffer []string, currentLine int, target interface{}, enc Encoding, tz Timezone, pv ProtocolVersion) (int, error) {
+func seqScan(buffer []string, depth int, currentLine int, target interface{}, enc Encoding, tz Timezone, pv ProtocolVersion) (int, RETV, error) {
 
-	outerStructure := reflect.TypeOf(target).Elem()
+	outerStructureType := reflect.TypeOf(target).Elem()
 
-	for i := 0; i < outerStructure.NumField(); i++ {
+	fmt.Printf("seqScan (%s, %d)\n", reflect.TypeOf(target).Name(), depth)
 
-		astmTag := outerStructure.Field(i).Tag.Get("astm")
+	for i := 0; i < outerStructureType.NumField(); i++ {
+
+		astmTag := outerStructureType.Field(i).Tag.Get("astm")
 		astmTagsList := strings.Split(astmTag, ",")
 
 		if len(astmTagsList) < 1 {
 			continue // not annotated
 		}
+
+		// no tags provided means a neted array with more records or ignore
 		if len(astmTagsList[0]) < 1 {
 
 			// Not annotated array. If its a struct have to recurse, otherwise skip
-			if outerStructure.Field(i).Type.Kind() == reflect.Slice {
-				sliceFieldType := reflect.TypeOf(outerStructure.Field(i)) // this is the slice
-				innerStructureType := outerStructure.Field(i).Type.Elem()
+			if outerStructureType.Field(i).Type.Kind() == reflect.Slice {
 
-				proto_slice := reflect.MakeSlice(outerStructure.Field(i).Type, 0, 0)
-				slice := reflect.New(proto_slice.Type())
-				/* 	*/
+				// What is the type of the Slice? (Struct or string ?)
+				sliceFieldType := reflect.TypeOf(outerStructureType.Field(i))
 
+				// Array of Structs
 				if sliceFieldType.Kind() == reflect.Struct {
+					innerStructureType := outerStructureType.Field(i).Type.Elem()
+
+					sliceForNestedStructure := reflect.MakeSlice(outerStructureType.Field(i).Type, 0, 0)
 
 					for {
-						fmt.Println("Loop")
 
 						allocatedElement := reflect.New(innerStructureType)
 						var err error
-						currentLine, err = seqScan(buffer, currentLine, allocatedElement.Interface(), enc, tz, pv)
+						var retv RETV
+						currentLine, retv, err = seqScan(buffer, depth+1, currentLine, allocatedElement.Interface(), enc, tz, pv)
 						if err != nil {
-							fmt.Println("Exit due to failed read")
-							// return currentLine, err
-							break
+							if retv == UNEXPECTED {
+								if depth > 1 {
+									// if nested structures abort due to unexpected records that does not creaate an error
+									// as the parse will be conitnued one level higher
+									return currentLine, UNEXPECTED, err
+								} else {
+									return currentLine, ERROR, err
+								}
+							}
 						}
 
-						// append to array
-						// slice := reflect.ValueOf(target).Elem().Field(i)
-						// fmt.Printf("Outer %s\n", slice.Kind())
-						// os.Exit(-1)
-						// reflect.ValueOf(outerType.Field(i)).Set(reflect.Append(reflect.ValueOf(outerType.Field(i)), allocatedElement))
-						// reflect.ValueOf(slice).Set()
-
-						slice = reflect.Append(slice.Elem(), reflect.ValueOf(allocatedElement).Elem())
-						// fmt.Printf("Appended %s\n", appended)
-						// aslice := reflect.ValueOf(slice)
-						//fmt.Printf("QUESTIONMARK %s\n", appended.Interface())
-						// reflect.ValueOf()
-
-						//fmt.Println("THIS TIME DONT OVERLOOK THISE ONE")
-						//reflect.ValueOf(slice).Set(reflect.ValueOf(slice.Elem()))
-						//os.Exit(-1)
-						// reflect.ValueOf(slice.Interface()).Set(
-						//	reflect.Append(reflect.ValueOf(slice.Interface()), allocatedElement.Elem()))
-						// slice.Set(reflect.Append(reflect.ValueOf(slice.Interface()), allocatedElement.Elem()))
-						// reflect.ValueOf(slice).Set(reflect.Append(reflect.ValueOf(slice.Interface()), allocatedElement.Elem()))
+						sliceForNestedStructure = reflect.Append(sliceForNestedStructure, allocatedElement.Elem())
+						reflect.ValueOf(target).Elem().Field(i).Set(sliceForNestedStructure)
 					}
-
-					fmt.Printf("valf %+v %s\n", slice.Elem(), slice.Elem().CanSet())
-					fmt.Printf("outs %+v %s\n", reflect.ValueOf(target).Elem().Field(i),
-						reflect.ValueOf(target).Elem().Field(i).CanSet())
-
-					reflect.ValueOf(target).Elem().Field(i).Set(slice.Elem()) //reflect.ValueOf(outerStructure.Field(i)).Elem().Set(slice)
-					//reflect.ValueOf(outerStructure.Field(i)).Set(slice)
-					//reflect.ValueOf(outerStructure.Field(i)).
 				}
 			}
-			continue // empty annotation
 		}
 
+		// A regular nested structure for scanning with a valid annotation
+		/* if outerStructureType.Field(i).Type.Kind() == reflect.Struct {
+			fmt.Println("DOWN")
+			currentLine, retv, err := seqScan(buffer, depth+1, currentLine,
+				reflect.ValueOf(target).Field(i).Elem(), enc, tz, pv)
+			if err != nil {
+				if retv == UNEXPECTED {
+					if depth > 1 {
+						// if nested structures abort due to unexpected records that does not creaate an error
+						// as the parse will be conitnued one level higher
+						return currentLine, UNEXPECTED, err
+					} else {
+						return currentLine, ERROR, err
+					}
+				}
+			}
+		}
+		continue // empty annotation
+		*/
 		//TODO: Only valid if: H,L,M,P,O,S,C
 		expectRecordType := astmTagsList[0][0]
-		fmt.Printf("I am expecting %c\n", expectRecordType)
+		//h		fmt.Printf("I am expecting %c depth:%d \n", expectRecordType, depth)
 
 		optional := false
 		if contains(astmTagsList, "optional") {
@@ -114,15 +123,18 @@ func seqScan(buffer []string, currentLine int, target interface{}, enc Encoding,
 
 		if expectRecordType == buffer[currentLine][0] {
 			//TODO scan it
-			fmt.Printf("Consumed %c\n", expectRecordType)
+			//fmt.Printf("Consumed %c\n", expectRecordType)
+			err := MapRecordFromString(expectRecordType, buffer[currentLine], outerStructureType.Field(i))
+			if err != nil {
+				return currentLine, ERROR, err
+			}
 			currentLine = currentLine + 1
 		} else {
 			if optional {
 				fmt.Printf("Skipped optional %c\n", expectRecordType)
 				continue
 			} else {
-				fmt.Println("Failed a bit ...")
-				return currentLine, errors.New(fmt.Sprintf("Expected Record-Type '%c' input was '%c' (Abort)", expectRecordType, buffer[currentLine][0]))
+				return currentLine, UNEXPECTED, errors.New(fmt.Sprintf("Expected Record-Type '%c' input was '%c' in depth (%d) (Abort)", expectRecordType, buffer[currentLine][0], depth))
 			}
 		}
 		/*
@@ -157,7 +169,13 @@ func seqScan(buffer []string, currentLine int, target interface{}, enc Encoding,
 		}
 	}
 
-	return currentLine, nil
+	return currentLine, OK, nil
+}
+
+func MapRecordFromString(recordtype byte, inputstr string, target interface{}) error {
+
+	fmt.Printf("DECODE %s : %s\n", string(recordtype), inputstr)
+	return nil
 }
 
 func Scan(input string, target interface{}, expectRecord byte, optional bool) error {
