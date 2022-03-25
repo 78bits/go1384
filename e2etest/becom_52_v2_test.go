@@ -241,6 +241,6 @@ func TestReadfileBeCom52_v2(t *testing.T) {
 		return
 	}
 
-	fmt.Printf("Decoded:\n%+v\n", message)
-
+	/* fmt.Printf("Decoded:\n%+v\n", message)
+	 */
 }
